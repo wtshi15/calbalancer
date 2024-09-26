@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Calendar with Weighted Meetings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-around;
+            background-color: #4285f4;
+            color: white;
+            padding: 10px 0;
+        }
+        .calendar-header div {
+            width: 20%;
+            text-align: center;
+        }
+        .calendar-body {
+            flex: 1;
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        .day-column {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            position: relative;
+            border-left: 1px solid #ddd;
+            box-sizing: border-box;
+            overflow-y: scroll;
+        }
+        .day-column:first-child {
+            border-left: none;
+        }
+        .half-column {
+            width: 50%;
+            position: relative;
+        }
+        .hour-mark {
+            position: relative;
+            height: 60px; /* Each hour block is 60px tall */
+            border-top: 1px solid #e0e0e0;
+        }
+        .hour-mark span {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 10px;
+            color: #777;
+        }
+        .event {
+            background-color: #e0e0e0;
+            position: absolute;
+            padding: 5px 10px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            width: 90%;
+        }
+        .event.meeting {
+            color: white;
+            text-align: center;
+            border-radius: 20px;
+        }
+        .meeting1 {
+            background-color: #ff5722;
+        }
+        .meeting2 {
+            background-color: #4caf50;
+        }
+        .meeting3 {
+            background-color: #2196f3;
+        }
+        .sliders-container {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+        .slider-group {
+            margin-bottom: 10px;
+        }
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .slider-group input[type=range] {
+            width: 100%;
+        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .calendar-header div, .day-column {
+                font-size: 12px;
+            }
+            .sliders-container {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <div>Monday</div>
+            <div>Tuesday</div>
+            <div>Wednesday</div>
+            <div>Thursday</div>
+            <div>Friday</div>
+        </div>
+        <div class="calendar-body">
+            <!-- Repeat for each day -->
+            <div class="day-column" data-day="Monday" id="monday">
+                <div class="half-column" id="monday-mentor"></div>
+                <div class="half-column" id="monday-student"></div>
+            </div>
+            <div class="day-column" data-day="Tuesday" id="tuesday">
+                <div class="half-column" id="tuesday-mentor"></div>
+                <div class="half-column" id="tuesday-student"></div>
+            </div>
+            <div class="day-column" data-day="Wednesday" id="wednesday">
+                <div class="half-column" id="wednesday-mentor"></div>
+                <div class="half-column" id="wednesday-student"></div>
+            </div>
+            <div class="day-column" data-day="Thursday" id="thursday">
+                <div class="half-column" id="thursday-mentor"></div>
+                <div class="half-column" id="thursday-student"></div>
+            </div>
+            <div class="day-column" data-day="Friday" id="friday">
+                <div class="half-column" id="friday-mentor"></div>
+                <div class="half-column" id="friday-student"></div>
+            </div>
+        </div>
+        <div class="sliders-container">
+            <div class="slider-group">
+                <label for="slider-lisa">Lisa Technical Skill: <span id="label-lisa">50%</span></label>
+                <input type="range" id="slider-lisa" min="0" max="100" value="50">
+            </div>
+            <div class="slider-group">
+                <label for="slider-james">James Technical Skill: <span id="label-james">50%</span></label>
+                <input type="range" id="slider-james" min="0" max="100" value="50">
+            </div>
+            <div class="slider-group">
+                <label for="slider-brandon">Brandon Technical Skill: <span id="label-brandon">50%</span></label>
+                <input type="range" id="slider-brandon" min="0" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hours = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'];
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+        const classes = [
+            'BAH151H', 'MAN325', 'CS313E', 'ACC311H', 'STA325H', 'MAN327H'
+        ];
+
+        const events = [
+            { title: 'Team Meeting', day: 'Monday', time: '10:00 AM', duration: 2 },
+            { title: 'Gym', day: 'Tuesday', time: '8:00 AM', duration: 1 },
+            { title: 'Doctor Appointment', day: 'Wednesday', time: '2:00 PM', duration: 1 },
+            { title: 'Conference Call', day: 'Thursday', time: '3:00 PM', duration: 1 },
+            { title: 'Dinner with Client', day: 'Friday', time: '6:00 PM', duration: 2 },
+        ];
+
+        const meetings = [
+            { id: 1, title: 'Meeting w/ Lisa', day: 'Monday', time: '11:00 AM', duration: 2 },
+            { id: 2, title: 'Meeting w/ James', day: 'Wednesday', time: '3:00 PM', duration: 1 },
+            { id: 3, title: 'Meeting w/ Brandon', day: 'Friday', time: '1:00 PM', duration: 1 }
+        ];
+
+        function createHourMarks(dayElement) {
+            hours.forEach(hour => {
+                const hourDiv = document.createElement('div');
+                hourDiv.classList.add('hour-mark');
+                hourDiv.innerHTML = `<span>${hour}</span>`;
+                dayElement.appendChild(hourDiv);
+            });
+        }
+
+        function initCalendar() {
+            days.forEach(day => {
+                const mentorElement = document.getElementById(day.toLowerCase() + '-mentor');
+                const studentElement = document.getElementById(day.toLowerCase() + '-student');
+                createHourMarks(mentorElement);
+                createHourMarks(studentElement);
+            });
+
+            renderEvents();
+            renderMeetings();
+        }
+
+        function renderEvents() {
+            events.forEach(event => {
+                const mentorElement = document.getElementById(event.day.toLowerCase() + '-mentor');
+                const eventElement = document.createElement('div');
+                eventElement.classList.add('event');
+                eventElement.textContent = event.title;
+
+                const timeSlot = hours.indexOf(event.time);
+                if (timeSlot !== -1) {
+                    const top = timeSlot * 60;
+                    eventElement.style.top = `${top}px`;
+                    eventElement.style.height = `${event.duration * 60}px`;
+                }
+
+                mentorElement.appendChild(eventElement);
+            });
+
+            classes.forEach((cls, index) => {
+                const day = days[index % days.length]; // Cycle through days
+                const studentElement = document.getElementById(day.toLowerCase() + '-student');
+                const classElement = document.createElement('div');
+                classElement.classList.add('event');
+                classElement.textContent = cls;
+
+                const top = (index + 1) * 60; // Adjust class time
+                classElement.style.top = `${top}px`;
+                classElement.style.height = '60px'; // Assume each class is 1 hour
+
+                studentElement.appendChild(classElement);
+            });
+        }
+
+        function renderMeetings() {
+            meetings.forEach((meeting, index) => {
+                const mentorElement = document.getElementById(meeting.day.toLowerCase() + '-mentor');
+                const meetingElement = document.createElement('div');
+                meetingElement.classList.add('event', 'meeting', `meeting${index + 1}`);
+                meetingElement.textContent = meeting.title;
+
+                const timeSlot = hours.indexOf(meeting.time);
+                if (timeSlot !== -1) {
+                    const top = timeSlot * 60;
+                    meetingElement.style.top = `${top}px`;
+                    meetingElement.style.height = `${meeting.duration * 60}px`;
+                }
+
+                mentorElement.appendChild(meetingElement);
+            });
+        }
+
+        function updateMeetingNames() {
+            const sliderValues = [
+                { name: 'Lisa', value: parseInt(document.getElementById('slider-lisa').value, 10) },
+                { name: 'James', value: parseInt(document.getElementById('slider-james').value, 10) },
+                { name: 'Brandon', value: parseInt(document.getElementById('slider-brandon').value, 10) }
+            ];
+
+            sliderValues.sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+
+            meetings[0].title = `Meeting w/ ${sliderValues[0].name}`;
+            meetings[1].title = `Meeting w/ ${sliderValues[1].name}`;
+            meetings[2].title = `Meeting w/ ${sliderValues[2].name}`;
+
+            document.querySelectorAll('.meeting1')[0].textContent = meetings[0].title;
+            document.querySelectorAll('.meeting2')[0].textContent = meetings[1].title;
+            document.querySelectorAll('.meeting3')[0].textContent = meetings[2].title;
+        }
+
+        // Update slider values and labels
+        function updateSliderLabels() {
+            document.getElementById('label-lisa').textContent = document.getElementById('slider-lisa').value + '%';
+            document.getElementById('label-james').textContent = document.getElementById('slider-james').value + '%';
+            document.getElementById('label-brandon').textContent = document.getElementById('slider-brandon').value + '%';
+        }
+
+        document.getElementById('slider-lisa').addEventListener('input', () => {
+            updateSliderLabels();
+            updateMeetingNames();
+        });
+
+        document.getElementById('slider-james').addEventListener('input', () => {
+            updateSliderLabels();
+            updateMeetingNames();
+        });
+
+        document.getElementById('slider-brandon').addEventListener('input', () => {
+            updateSliderLabels();
+            updateMeetingNames();
+        });
+
+        // Initialize the calendar with events and meetings
+        initCalendar();
+    </script>
+</body>
+</html>
